@@ -1,0 +1,22 @@
+# ============================================================================
+# Basic Example - Terraform Variables Example
+# ============================================================================
+
+aws_region  = "us-east-1"
+client      = "acme"
+project     = "ai-platform"
+environment = "dev"
+
+agent_runtimes = {
+  customer-service = {
+    description   = "Customer service AI agent"
+    container_uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/customer-service:latest"
+    network_mode  = "PUBLIC"
+    protocol      = "MCP"
+
+    environment_variables = {
+      LOG_LEVEL = "INFO"
+      MODEL_ID  = "anthropic.claude-3-sonnet-20240229-v1:0"
+    }
+  }
+}
