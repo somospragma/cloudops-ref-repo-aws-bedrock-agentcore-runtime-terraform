@@ -129,7 +129,7 @@ variable "agent_runtimes" {
   validation {
     condition = alltrue([
       for k, v in var.agent_runtimes :
-      v.code_configuration == null || contains(["PYTHON_3_10", "PYTHON_3_11", "PYTHON_3_12", "PYTHON_3_13"], v.code_configuration.runtime)
+      v.code_configuration == null || contains(["PYTHON_3_10", "PYTHON_3_11", "PYTHON_3_12", "PYTHON_3_13"], try(v.code_configuration.runtime, ""))
     ])
     error_message = "Code runtime must be one of: PYTHON_3_10, PYTHON_3_11, PYTHON_3_12, PYTHON_3_13."
   }
@@ -138,11 +138,11 @@ variable "agent_runtimes" {
     condition = alltrue([
       for k, v in var.agent_runtimes :
       v.lifecycle_config == null || (
-        v.lifecycle_config.idle_timeout >= 60 &&
-        v.lifecycle_config.idle_timeout <= 28800 &&
-        v.lifecycle_config.max_lifetime >= 60 &&
-        v.lifecycle_config.max_lifetime <= 28800 &&
-        v.lifecycle_config.idle_timeout <= v.lifecycle_config.max_lifetime
+        try(v.lifecycle_config.idle_timeout, 0) >= 60 &&
+        try(v.lifecycle_config.idle_timeout, 0) <= 28800 &&
+        try(v.lifecycle_config.max_lifetime, 0) >= 60 &&
+        try(v.lifecycle_config.max_lifetime, 0) <= 28800 &&
+        try(v.lifecycle_config.idle_timeout, 0) <= try(v.lifecycle_config.max_lifetime, 0)
       )
     ])
     error_message = "Lifecycle timeouts must be between 60 and 28800 seconds, and idle_timeout must be <= max_lifetime."
