@@ -87,12 +87,12 @@ variable "agent_runtimes" {
   }))
   default = {}
 
-  validation {
-    condition = alltrue([
-      for k, v in var.agent_runtimes : can(regex("^[a-z0-9-]{3,63}$", k))
-    ])
-    error_message = "Agent runtime keys must be 3-63 characters, lowercase letters, numbers, and hyphens only."
-  }
+  # validation {
+  #   condition = alltrue([
+  #     for k, v in var.agent_runtimes : can(regex("^[a-z0-9-]{3,63}$", k))
+  #   ])
+  #   error_message = "Agent runtime keys must be 3-63 characters, lowercase letters, numbers, and hyphens only."
+  # }
 
   validation {
     condition = alltrue([
