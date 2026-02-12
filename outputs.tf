@@ -85,3 +85,57 @@ output "agent_runtime_configurations" {
     }
   }
 }
+
+output "log_group_names" {
+  description = "Map of agent runtime names to their CloudWatch log group names. Use for log queries and monitoring"
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime : key => lg.name
+  }
+}
+
+output "log_group_arns" {
+  description = "Map of agent runtime names to their CloudWatch log group ARNs. Use for IAM policies and cross-service references"
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime : key => lg.arn
+  }
+}
+
+output "log_delivery_ids" {
+  description = "Map of agent runtime names to their log delivery IDs for application logs"
+  value = {
+    for key, ld in aws_cloudwatch_log_delivery.agent_runtime_application : key => ld.id
+  }
+}
+
+output "xray_sampling_rule_arn" {
+  description = "ARN of the X-Ray sampling rule for agent runtimes. Use for X-Ray configuration and monitoring"
+  value       = try(aws_xray_sampling_rule.agent_runtime[0].arn, null)
+}
+
+output "observability_configuration" {
+  description = <<-EOT
+    Complete observability configuration for all agent runtimes.
+    Includes log groups, delivery configurations, and tracing settings.
+    
+    Structure:
+    {
+      runtime_key = {
+        log_group_name = "log-group-name"
+        log_group_arn  = "log-group-arn"
+        application_logs_enabled = true/false
+        usage_logs_enabled = true/false
+        tracing_enabled = true/false
+      }
+    }
+  EOT
+  value = {
+    for key, runtime in aws_bedrockagentcore_agent_runtime.this : key => {
+      log_group_name           = try(aws_cloudwatch_log_group.agent_runtime[key].name, null)
+      log_group_arn            = try(aws_cloudwatch_log_group.agent_runtime[key].arn, null)
+      application_logs_enabled = var.enable_logging && var.enable_application_logs
+      usage_logs_enabled       = var.enable_logging && var.enable_usage_logs
+      tracing_enabled          = var.enable_tracing
+      xray_sampling_rate       = var.xray_sampling_rate
+    }
+  }
+}

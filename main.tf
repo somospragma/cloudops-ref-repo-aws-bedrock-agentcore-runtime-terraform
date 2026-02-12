@@ -261,3 +261,101 @@ resource "aws_iam_role_policy" "agent_runtime" {
 
   provider = aws.project
 }
+
+# ============================================================================
+# CloudWatch Log Groups for Agent Runtimes
+# ============================================================================
+
+resource "aws_cloudwatch_log_group" "agent_runtime" {
+  for_each = var.enable_logging ? var.agent_runtimes : {}
+
+  name              = "/aws/bedrock-agentcore/runtimes/${aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id}-${replace("${local.name_prefix}-endpoint-${each.key}", "-", "_")}/runtime-logs"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = var.kms_key_id
+
+  provider = aws.project
+}
+
+# ============================================================================
+# CloudWatch Log Delivery Configuration
+# ============================================================================
+
+# Log Delivery Destination for CloudWatch Logs
+resource "aws_cloudwatch_log_delivery_destination" "agent_runtime" {
+  for_each = var.enable_logging ? var.agent_runtimes : {}
+
+  name = "${local.name_prefix}-agentcore-${each.key}-destination"
+
+  delivery_destination_configuration {
+    destination_resource_arn = aws_cloudwatch_log_group.agent_runtime[each.key].arn
+  }
+
+  output_format = "json"
+
+  provider = aws.project
+}
+
+# Log Delivery Source for Agent Runtime - Application Logs
+resource "aws_cloudwatch_log_delivery_source" "agent_runtime_application" {
+  for_each = var.enable_logging && var.enable_application_logs ? var.agent_runtimes : {}
+
+  name         = "${local.name_prefix}-agentcore-${each.key}-app-logs"
+  log_type     = "APPLICATION_LOGS"
+  resource_arn = aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_arn
+
+  provider = aws.project
+}
+
+# Log Delivery Source for Agent Runtime - Usage Logs
+resource "aws_cloudwatch_log_delivery_source" "agent_runtime_usage" {
+  for_each = var.enable_logging && var.enable_usage_logs ? var.agent_runtimes : {}
+
+  name         = "${local.name_prefix}-agentcore-${each.key}-usage-logs"
+  log_type     = "USAGE_LOGS"
+  resource_arn = aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_arn
+
+  provider = aws.project
+}
+
+# Log Delivery Connection - Application Logs
+resource "aws_cloudwatch_log_delivery" "agent_runtime_application" {
+  for_each = var.enable_logging && var.enable_application_logs ? var.agent_runtimes : {}
+
+  delivery_source_name      = aws_cloudwatch_log_delivery_source.agent_runtime_application[each.key].name
+  delivery_destination_arn  = aws_cloudwatch_log_delivery_destination.agent_runtime[each.key].arn
+
+  provider = aws.project
+}
+
+# Log Delivery Connection - Usage Logs
+resource "aws_cloudwatch_log_delivery" "agent_runtime_usage" {
+  for_each = var.enable_logging && var.enable_usage_logs ? var.agent_runtimes : {}
+
+  delivery_source_name      = aws_cloudwatch_log_delivery_source.agent_runtime_usage[each.key].name
+  delivery_destination_arn  = aws_cloudwatch_log_delivery_destination.agent_runtime[each.key].arn
+
+  provider = aws.project
+}
+
+# ============================================================================
+# X-Ray Tracing Configuration
+# ============================================================================
+
+# X-Ray Sampling Rule for Agent Runtimes
+resource "aws_xray_sampling_rule" "agent_runtime" {
+  count = var.enable_tracing ? 1 : 0
+
+  rule_name      = "${local.name_prefix}-agentcore-sampling"
+  priority       = 1000
+  version        = 1
+  reservoir_size = 1
+  fixed_rate     = var.xray_sampling_rate
+  url_path       = "*"
+  host           = "*"
+  http_method    = "*"
+  service_type   = "*"
+  service_name   = "bedrock-agentcore"
+  resource_arn   = "*"
+
+  provider = aws.project
+}

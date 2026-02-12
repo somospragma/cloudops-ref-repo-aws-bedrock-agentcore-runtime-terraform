@@ -213,3 +213,53 @@ variable "log_retention_days" {
     error_message = "Log retention must be a valid CloudWatch logs retention period."
   }
 }
+
+variable "enable_application_logs" {
+  description = "Enable APPLICATION_LOGS delivery to CloudWatch. These logs track agent runtime invocations and session-level resource consumption"
+  type        = bool
+  default     = true
+}
+
+variable "enable_usage_logs" {
+  description = "Enable USAGE_LOGS delivery to CloudWatch. These logs track resource usage metrics at 1-second granularity"
+  type        = bool
+  default     = true
+}
+
+# Tracing Configuration
+variable "enable_tracing" {
+  description = "Enable AWS X-Ray tracing for agent runtimes. Provides distributed tracing and performance insights"
+  type        = bool
+  default     = true
+}
+
+variable "xray_sampling_rate" {
+  description = "X-Ray sampling rate (0.0 to 1.0). Controls the percentage of requests traced"
+  type        = number
+  default     = 0.05
+
+  validation {
+    condition     = var.xray_sampling_rate >= 0 && var.xray_sampling_rate <= 1
+    error_message = "X-Ray sampling rate must be between 0.0 and 1.0."
+  }
+}
+
+# Resource Policy Configuration
+variable "resource_policy_statements" {
+  description = "Additional resource policy statements for agent runtime endpoints"
+  type = list(object({
+    sid       = string
+    effect    = string
+    actions   = list(string)
+    principals = object({
+      type        = string
+      identifiers = list(string)
+    })
+    conditions = optional(list(object({
+      test     = string
+      variable = string
+      values   = list(string)
+    })), [])
+  }))
+  default = []
+}
