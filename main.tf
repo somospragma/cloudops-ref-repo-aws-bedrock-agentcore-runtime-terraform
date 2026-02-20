@@ -65,12 +65,9 @@ resource "aws_bedrockagentcore_agent_runtime" "this" {
   }
 
   # Lifecycle Configuration
-  dynamic "lifecycle_configuration" {
-    for_each = each.value.lifecycle_config != null ? [each.value.lifecycle_config] : []
-    content {
-      idle_runtime_session_timeout = lifecycle_configuration.value.idle_timeout
-      max_lifetime                 = lifecycle_configuration.value.max_lifetime
-    }
+  lifecycle_configuration {
+    idle_runtime_session_timeout = each.value.lifecycle_config.idle_timeout
+    max_lifetime                 = each.value.lifecycle_config.max_lifetime
   }
 
   # Protocol Configuration

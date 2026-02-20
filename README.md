@@ -373,10 +373,11 @@ agent_runtimes = {
       allowed_clients  = list(string)   # Clientes permitidos (opcional)
     }
     
-    # Configuración del ciclo de vida (opcional)
+    # Configuración del ciclo de vida
+    # Siempre se aplica con valores por defecto si no se especifica
     lifecycle_config = {
-      idle_timeout = number             # Timeout de inactividad en segundos (60-28800)
-      max_lifetime = number             # Tiempo máximo de vida en segundos (60-28800)
+      idle_timeout = number             # Timeout de inactividad en segundos (60-28800, default: 900)
+      max_lifetime = number             # Tiempo máximo de vida en segundos (60-28800, default: 28800)
     }
     
     # Headers permitidos (opcional)
@@ -395,6 +396,7 @@ agent_runtimes = {
 - `code_configuration.runtime` debe ser una versión válida de Python
 - Los timeouts del ciclo de vida deben estar entre 60 y 28800 segundos
 - `idle_timeout` debe ser menor o igual a `max_lifetime`
+- **IMPORTANTE**: `lifecycle_config` siempre se aplica con valores por defecto (900s idle, 28800s max) si no se especifica explícitamente
 
 **Ejemplo:**
 
@@ -411,6 +413,7 @@ agent_runtimes = {
       MODEL_ID  = "anthropic.claude-3-sonnet-20240229-v1:0"
     }
     
+    # lifecycle_config es opcional - si no se especifica, usa defaults (900s idle, 28800s max)
     lifecycle_config = {
       idle_timeout = 1800  # 30 minutos
       max_lifetime = 14400 # 4 horas

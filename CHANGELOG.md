@@ -23,15 +23,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete documentation and examples
 
 ### Changed
-- N/A
+- **BREAKING**: `lifecycle_config` ahora siempre se aplica con valores por defecto (idle_timeout: 900s, max_lifetime: 28800s)
+- Cambiado de bloque dinámico a bloque estático para `lifecycle_configuration` en main.tf
+- Actualizada la definición de variable `lifecycle_config` para incluir valores por defecto explícitos
+- Actualizada documentación para reflejar que lifecycle_config siempre está presente
+
+### Fixed
+- **IMPORTANTE**: Resuelto problema donde los cambios a `lifecycle_config` no se aplicaban cuando el runtime se creaba sin esta configuración inicialmente
+- La API de AWS UpdateAgentRuntime ahora recibe correctamente el bloque lifecycle_configuration en todas las actualizaciones
 
 ### Deprecated
 - N/A
 
 ### Removed
-- N/A
-
-### Fixed
 - N/A
 
 ### Security

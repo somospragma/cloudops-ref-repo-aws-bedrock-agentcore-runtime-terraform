@@ -18,5 +18,11 @@ agent_runtimes = {
       LOG_LEVEL = "INFO"
       MODEL_ID  = "anthropic.claude-3-sonnet-20240229-v1:0"
     }
+
+    # Lifecycle configuration (optional - defaults to 900s idle, 28800s max)
+    # lifecycle_config = {
+    #   idle_timeout = 1800  # 30 minutes
+    #   max_lifetime = 14400 # 4 hours
+    # }
   }
 }

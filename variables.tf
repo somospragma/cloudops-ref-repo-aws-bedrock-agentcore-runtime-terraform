@@ -81,7 +81,10 @@ variable "agent_runtimes" {
     lifecycle_config = optional(object({
       idle_timeout = optional(number, 900)
       max_lifetime = optional(number, 28800)
-    }))
+    }), {
+      idle_timeout = 900
+      max_lifetime = 28800
+    })
 
     allowed_headers = optional(list(string))
   }))
