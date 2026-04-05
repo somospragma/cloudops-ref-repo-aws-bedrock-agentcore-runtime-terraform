@@ -1,50 +1,28 @@
 # ============================================================================
-# Sample Implementation - Amazon Bedrock AgentCore Runtime
+# Sample Implementation - Module Invocation
+# ============================================================================
+# PC-IAC-026: main.tf solo contiene la invocación del módulo padre.
+# PC-IAC-013: Orden obligatorio (source, providers, gobernanza, config).
 # ============================================================================
 
-terraform {
-  required_version = ">= 1.5.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">= 6.24.0"
-    }
-  }
-}
-
-provider "aws" {
-  region = var.aws_region
-}
-
-provider "aws" {
-  alias  = "project"
-  region = var.aws_region
-
-  default_tags {
-    tags = {
-      ManagedBy = "terraform"
-      Sample    = "bedrock-agentcore"
-    }
-  }
-}
-
-# Bedrock AgentCore Runtime Module
 module "bedrock_agentcore" {
+  # A. Fuente del Módulo
   source = "../"
 
+  # B. Providers (PC-IAC-005)
+  providers = {
+    aws.project = aws.principal
+  }
+
+  # C. Variables de Gobernanza (PC-IAC-003)
   client      = var.client
   project     = var.project
   environment = var.environment
 
-  agent_runtimes = var.agent_runtimes
+  # E. Variables de Configuración - consumir local transformado (PC-IAC-026)
+  agent_runtimes = local.agent_runtimes_transformed
 
   enable_logging     = var.enable_logging
   log_retention_days = var.log_retention_days
-
-  additional_tags = var.additional_tags
-
-  providers = {
-    aws.project = aws.project
-  }
+  additional_tags    = var.additional_tags
 }

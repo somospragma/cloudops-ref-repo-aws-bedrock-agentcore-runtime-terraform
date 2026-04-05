@@ -7,43 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-- Initial module structure for Amazon Bedrock AgentCore Runtime
-- Support for multiple agent runtime deployments
-- Container-based and code-based deployment options
-- VPC and public network mode support
-- JWT-based custom authorization
-- Lifecycle configuration for session management
-- Protocol support for MCP, HTTP, and A2A
-- Automatic IAM role creation with least-privilege policies
-- CloudWatch logging integration
-- KMS encryption support
-- Enterprise tagging system (two-level)
-- Comprehensive input validation
-- Complete documentation and examples
-
 ### Changed
-- **BREAKING**: `lifecycle_config` ahora siempre se aplica con valores por defecto (idle_timeout: 900s, max_lifetime: 28800s)
-- Cambiado de bloque dinámico a bloque estático para `lifecycle_configuration` en main.tf
-- Actualizada la definición de variable `lifecycle_config` para incluir valores por defecto explícitos
-- Actualizada documentación para reflejar que lifecycle_config siempre está presente
+- **BREAKING**: `role_arn` es ahora obligatorio en `agent_runtimes` (PC-IAC-023). Los roles IAM deben crearse en el dominio de Seguridad.
+- **BREAKING**: Eliminada creación automática de roles IAM (`aws_iam_role`, `aws_iam_role_policy`) del módulo.
+- **BREAKING**: Eliminados outputs `iam_role_arns` e `iam_role_names`.
+- **BREAKING**: `environment` ahora acepta `dev`, `qa`, `pdn` en lugar de `dev`, `staging`, `prod`.
+- Agregado `configuration_aliases = [aws.project]` en `versions.tf` (PC-IAC-005).
+- Activados tags en todos los recursos con `merge()` y `Name` explícito (PC-IAC-004).
+- Agregadas validaciones faltantes en `kms_key_id`, `enable_logging` (PC-IAC-002).
+- Descomentada validación de keys de `agent_runtimes`.
+- Simplificado output `agent_runtime_configurations` para exponer solo IDs, ARNs y versions (PC-IAC-007).
+- Reestructurado `sample/` con patrón de transformación PC-IAC-026.
+- Eliminado directorio `examples/` (PC-IAC-001 solo permite `sample/`).
 
-### Fixed
-- **IMPORTANTE**: Resuelto problema donde los cambios a `lifecycle_config` no se aplicaban cuando el runtime se creaba sin esta configuración inicialmente
-- La API de AWS UpdateAgentRuntime ahora recibe correctamente el bloque lifecycle_configuration en todas las actualizaciones
-
-### Deprecated
-- N/A
+### Added
+- `sample/locals.tf` con transformaciones e inyección dinámica de role_arn.
+- `sample/data.tf` con data source para obtener IAM role por nomenclatura.
+- `sample/providers.tf` con configuración de provider separada.
+- Comentarios de referencia PC-IAC en todos los archivos.
 
 ### Removed
-- N/A
-
-### Security
-- Encryption enabled by default for all resources
-- Least-privilege IAM policies
-- Network isolation options (VPC mode)
-- JWT authorization support
-- TLS 1.2+ for all communications
+- `aws_iam_role.agent_runtime` resource.
+- `aws_iam_role_policy.agent_runtime` resource.
+- Data sources `aws_caller_identity`, `aws_region`, `aws_partition` (ya no necesarios).
+- Directorio `examples/`.
+- Outputs `iam_role_arns`, `iam_role_names`.
 
 ## [1.0.0] - 2025-01-15
 

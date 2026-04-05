@@ -1,8 +1,11 @@
 # ============================================================================
 # Amazon Bedrock AgentCore Runtime - Variables
 # ============================================================================
+# PC-IAC-002: Todas las variables declaran type, description y validation.
+# PC-IAC-023: role_arn es obligatorio (inyectado desde dominio de Seguridad).
+# ============================================================================
 
-# Required Variables
+# Variables de Gobernanza (PC-IAC-002 Sec. 3)
 variable "client" {
   description = "Client name for resource naming and tagging. Used as part of the naming convention: {client}-{project}-{environment}-{resource}"
   type        = string
@@ -36,33 +39,33 @@ variable "project" {
 }
 
 variable "environment" {
-  description = "Environment name (dev, staging, prod). Used for resource naming, tagging, and environment-specific configurations"
+  description = "Environment name (dev, qa, pdn). Used for resource naming, tagging, and environment-specific configurations"
   type        = string
 
   validation {
-    condition     = contains(["dev", "staging", "prod"], var.environment)
-    error_message = "Environment must be one of: dev, staging, prod."
+    condition     = contains(["dev", "qa", "pdn"], var.environment)
+    error_message = "Environment must be one of: dev, qa, pdn."
   }
 }
 
-# Agent Runtimes Configuration
+# Agent Runtimes Configuration (PC-IAC-002 Sec. 4.1 - map(object) para for_each)
 variable "agent_runtimes" {
-  description = "Map of Bedrock AgentCore Runtimes to create with detailed configuration options"
+  description = "Map of Bedrock AgentCore Runtimes to create. role_arn is required and must be injected from the Security domain (PC-IAC-023)."
   type = map(object({
     description      = optional(string, "Bedrock AgentCore Runtime")
     container_uri    = optional(string)
-    role_arn         = optional(string)
+    role_arn         = string
     network_mode     = optional(string, "PUBLIC")
     protocol         = optional(string, "MCP")
     create_endpoint  = optional(bool, true)
     endpoint_version = optional(string)
 
     code_configuration = optional(object({
-      entry_point    = list(string)
-      runtime        = string
-      s3_bucket      = string
-      s3_prefix      = string
-      s3_version_id  = optional(string)
+      entry_point   = list(string)
+      runtime       = string
+      s3_bucket     = string
+      s3_prefix     = string
+      s3_version_id = optional(string)
     }))
 
     vpc_config = optional(object({
@@ -86,16 +89,25 @@ variable "agent_runtimes" {
       max_lifetime = 28800
     })
 
-    allowed_headers = optional(list(string))
+    allowed_headers  = optional(list(string))
+    additional_tags  = optional(map(string), {})
   }))
   default = {}
 
-  # validation {
-  #   condition = alltrue([
-  #     for k, v in var.agent_runtimes : can(regex("^[a-z0-9-]{3,63}$", k))
-  #   ])
-  #   error_message = "Agent runtime keys must be 3-63 characters, lowercase letters, numbers, and hyphens only."
-  # }
+  validation {
+    condition = alltrue([
+      for k, v in var.agent_runtimes : can(regex("^[a-z0-9-]{3,63}$", k))
+    ])
+    error_message = "Agent runtime keys must be 3-63 characters, lowercase letters, numbers, and hyphens only."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.agent_runtimes :
+      can(regex("^arn:aws:iam::\\d{12}:role/.+$", v.role_arn))
+    ])
+    error_message = "role_arn must be a valid IAM role ARN (arn:aws:iam::<account>:role/<name>)."
+  }
 
   validation {
     condition = alltrue([
@@ -152,7 +164,7 @@ variable "agent_runtimes" {
   }
 }
 
-# Additional Tags
+# Additional Tags (PC-IAC-004)
 variable "additional_tags" {
   description = "Additional tags to apply to all resources beyond the base tags"
   type        = map(string)
@@ -178,7 +190,7 @@ variable "additional_tags" {
   }
 }
 
-# Encryption Configuration
+# Encryption Configuration (PC-IAC-020)
 variable "enable_encryption" {
   description = "Enable encryption for all resources (always true for security compliance)"
   type        = bool
@@ -191,9 +203,14 @@ variable "enable_encryption" {
 }
 
 variable "kms_key_id" {
-  description = "KMS key ID for encryption (optional, uses AWS managed key if not provided)"
+  description = "KMS key ID or ARN for encryption (optional, uses AWS managed key if not provided)"
   type        = string
   default     = null
+
+  validation {
+    condition     = var.kms_key_id == null || can(regex("^(arn:aws:kms:|alias/)", var.kms_key_id))
+    error_message = "kms_key_id must be a valid KMS key ARN or alias."
+  }
 }
 
 # Logging Configuration
@@ -201,6 +218,11 @@ variable "enable_logging" {
   description = "Enable CloudWatch logging for agent runtimes"
   type        = bool
   default     = true
+
+  validation {
+    condition     = var.enable_logging == true || var.enable_logging == false
+    error_message = "enable_logging must be a boolean value."
+  }
 }
 
 variable "log_retention_days" {

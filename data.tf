@@ -1,18 +1,7 @@
 # ============================================================================
 # Amazon Bedrock AgentCore Runtime - Data Sources
 # ============================================================================
-
-# Current AWS Account Information
-data "aws_caller_identity" "current" {
-  provider = aws.project
-}
-
-# Current AWS Region
-data "aws_region" "current" {
-  provider = aws.project
-}
-
-# Current AWS Partition
-data "aws_partition" "current" {
-  provider = aws.project
-}
+# PC-IAC-011: Los data sources de búsqueda de recursos deben declararse
+# en el Módulo Raíz (IaC Root), no en el Módulo de Referencia.
+# Solo se permiten data sources genéricos (aws_region, aws_partition, etc.).
+# ============================================================================
