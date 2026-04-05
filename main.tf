@@ -92,10 +92,11 @@ resource "aws_bedrockagentcore_agent_runtime" "this" {
     }
   }
 
-  # PC-IAC-004: Tags con Name explícito y merge de additional_tags
+  # PC-IAC-004: Tag Name explícito + additional_tags.
+  # Los tags transversales (Client, Project, Environment, ManagedBy) se
+  # inyectan vía default_tags del provider desde el Root (PC-IAC-004 Sec. 2).
   tags = merge(
     { Name = "${local.name_prefix}-agentcore-${each.key}" },
-    local.base_tags,
     var.additional_tags
   )
 
@@ -114,10 +115,9 @@ resource "aws_bedrockagentcore_agent_runtime_endpoint" "this" {
   agent_runtime_version = each.value.endpoint_version
   description           = "Endpoint for ${each.key} agent runtime"
 
-  # PC-IAC-004: Tags con Name explícito y merge de additional_tags
+  # PC-IAC-004: Tag Name explícito + additional_tags.
   tags = merge(
     { Name = "${local.name_prefix}-endpoint-${each.key}" },
-    local.base_tags,
     var.additional_tags
   )
 
