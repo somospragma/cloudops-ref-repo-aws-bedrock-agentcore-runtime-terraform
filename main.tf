@@ -1,14 +1,20 @@
 # ============================================================================
 # Amazon Bedrock AgentCore Runtime - Main Resources
 # ============================================================================
+# PC-IAC-023: Solo recursos intrínsecos al servicio AgentCore.
+# Los roles IAM deben ser creados en el dominio de Seguridad e inyectados
+# mediante la variable role_arn en cada entrada de agent_runtimes.
+# ============================================================================
 
 # Agent Runtime
 resource "aws_bedrockagentcore_agent_runtime" "this" {
   for_each = var.agent_runtimes
 
+  # PC-IAC-003: Nomenclatura estándar con replace por restricción de API AWS.
+  # agentRuntimeName solo acepta [a-zA-Z][a-zA-Z0-9_]{0,47}
   agent_runtime_name = replace("${local.name_prefix}-agentcore-${each.key}", "-", "_")
   description        = each.value.description
-  role_arn           = each.value.role_arn != null ? each.value.role_arn : aws_iam_role.agent_runtime[each.key].arn
+  role_arn           = each.value.role_arn
 
   # Agent Runtime Artifact Configuration
   agent_runtime_artifact {
@@ -86,7 +92,13 @@ resource "aws_bedrockagentcore_agent_runtime" "this" {
     }
   }
 
-  #tags = local.agent_runtime_tags[each.key]
+  # PC-IAC-004: Tag Name explícito + additional_tags.
+  # Los tags transversales (Client, Project, Environment, ManagedBy) se
+  # inyectan vía default_tags del provider desde el Root (PC-IAC-004 Sec. 2).
+  tags = merge(
+    { Name = "${local.name_prefix}-agentcore-${each.key}" },
+    var.additional_tags
+  )
 
   provider = aws.project
 }
@@ -98,163 +110,16 @@ resource "aws_bedrockagentcore_agent_runtime_endpoint" "this" {
     if config.create_endpoint
   }
 
-  name                   = replace("${local.name_prefix}-endpoint-${each.key}", "-", "_")
-  agent_runtime_id       = aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id
-  agent_runtime_version  = each.value.endpoint_version
-  description            = "Endpoint for ${each.key} agent runtime"
+  name                  = replace("${local.name_prefix}-endpoint-${each.key}", "-", "_")
+  agent_runtime_id      = aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id
+  agent_runtime_version = each.value.endpoint_version
+  description           = "Endpoint for ${each.key} agent runtime"
 
-  #tags = local.agent_runtime_tags[each.key]
-
-  provider = aws.project
-}
-
-# IAM Role for Agent Runtime
-resource "aws_iam_role" "agent_runtime" {
-  for_each = {
-    for key, config in var.agent_runtimes : key => config
-    if config.role_arn == null
-  }
-
-  name = "${local.name_prefix}-agentcore-role-${each.key}"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = "sts:AssumeRole"
-        Principal = {
-          Service = "bedrock-agentcore.amazonaws.com"
-        }
-      }
-    ]
-  })
-
-  #tags = local.agent_runtime_tags[each.key]
-
-  provider = aws.project
-}
-
-# IAM Policy for Agent Runtime
-resource "aws_iam_role_policy" "agent_runtime" {
-  for_each = {
-    for key, config in var.agent_runtimes : key => config
-    if config.role_arn == null
-  }
-
-  name = "${local.name_prefix}-agentcore-policy-${each.key}"
-  role = aws_iam_role.agent_runtime[each.key].id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = concat(
-      [
-        {
-          Effect = "Allow"
-          Action = [
-            "logs:DescribeLogStreams",
-            "logs:CreateLogGroup"
-          ]
-          Resource = [
-            "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "logs:DescribeLogGroups"
-          ]
-          Resource = [
-            "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "logs:CreateLogStream",
-            "logs:PutLogEvents"
-          ]
-          Resource = [
-            "arn:${data.aws_partition.current.partition}:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:/aws/bedrock-agentcore/runtimes/*:log-stream:*"
-          ]
-        },
-        {
-          Effect = "Allow"
-          Resource = "*"
-          Action = "cloudwatch:PutMetricData"
-          Condition = {
-            StringEquals = {
-              "cloudwatch:namespace": "bedrock-agentcore"
-            }
-          }
-        },
-        {
-          Effect = "Allow" 
-          Action = [ 
-            "xray:PutTraceSegments", 
-            "xray:PutTelemetryRecords", 
-            "xray:GetSamplingRules", 
-            "xray:GetSamplingTargets"
-          ]
-          Resource = "*" 
-        },
-        {
-          Effect = "Allow"
-          Action = [
-            "bedrock-agentcore:GetWorkloadAccessToken",
-            "bedrock-agentcore:GetWorkloadAccessTokenForJWT",
-            "bedrock-agentcore:GetWorkloadAccessTokenForUserId"
-          ]
-          Resource = [
-            "arn:${data.aws_partition.current.partition}:bedrock-agentcore:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:workload-identity-directory/default",
-            "arn:${data.aws_partition.current.partition}:bedrock-agentcore:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:workload-identity-directory/default/workload-identity/agentName-*"
-          ]
-        },
-        {
-          Effect = "Allow" 
-          Action = [ 
-            "bedrock:InvokeModel", 
-            "bedrock:InvokeModelWithResponseStream"
-          ], 
-          Resource = [
-            "arn:${data.aws_partition.current.partition}:bedrock:*::foundation-model/*",
-            "arn:${data.aws_partition.current.partition}:bedrock:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
-          ]
-        }
-      ],
-      (each.value.container_uri != null ? 
-        [
-          {
-            Effect = "Allow"
-            Action = [
-              "ecr:GetAuthorizationToken"
-            ]
-            Resource = "*"
-          },
-          {
-            Effect = "Allow"
-            Action = [
-              "ecr:BatchGetImage",
-              "ecr:GetDownloadUrlForLayer"
-            ]
-            Resource = "arn:${data.aws_partition.current.partition}:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/*"
-          }
-        ] : 
-        []),
-      (each.value.code_configuration != null ? 
-        [
-          {
-            Effect = "Allow"
-            Action = [
-              "s3:GetObject",
-              "s3:GetObjectVersion"
-            ]
-            Resource = "arn:${data.aws_partition.current.partition}:s3:::${each.value.code_configuration.s3_bucket}/${each.value.code_configuration.s3_prefix}"
-          }
-        ] : 
-        [])
-    )
-  })
+  # PC-IAC-004: Tag Name explícito + additional_tags.
+  tags = merge(
+    { Name = "${local.name_prefix}-endpoint-${each.key}" },
+    var.additional_tags
+  )
 
   provider = aws.project
 }

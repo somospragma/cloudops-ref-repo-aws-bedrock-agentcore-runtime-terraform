@@ -22,13 +22,7 @@ output "endpoint_arns" {
   value       = module.bedrock_agentcore.endpoint_arns
 }
 
-output "iam_role_arns" {
-  description = "IAM role ARNs for agent runtimes"
-  value       = module.bedrock_agentcore.iam_role_arns
-}
-
 output "agent_runtime_configurations" {
-  description = "Complete agent runtime configurations"
+  description = "Complete agent runtime configurations summary"
   value       = module.bedrock_agentcore.agent_runtime_configurations
-  sensitive   = true
 }
