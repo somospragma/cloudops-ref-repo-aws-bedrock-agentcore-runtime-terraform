@@ -84,13 +84,17 @@ variable "agent_runtimes" {
     lifecycle_config = optional(object({
       idle_timeout = optional(number, 900)
       max_lifetime = optional(number, 28800)
-    }), {
+      }), {
       idle_timeout = 900
       max_lifetime = 28800
     })
 
-    allowed_headers  = optional(list(string))
-    additional_tags  = optional(map(string), {})
+    allowed_headers = optional(list(string))
+    additional_tags = optional(map(string), {})
+
+    # Logging Configuration
+    kms_key_id         = optional(string)
+    log_retention_days = optional(number, 30)
   }))
   default = {}
 
@@ -162,6 +166,25 @@ variable "agent_runtimes" {
     ])
     error_message = "Lifecycle timeouts must be between 60 and 28800 seconds, and idle_timeout must be <= max_lifetime."
   }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.agent_runtimes :
+      contains([
+        1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731,
+        1096, 1827, 2192, 2557, 2922, 3288, 3653, 0
+      ], v.log_retention_days)
+    ])
+    error_message = "log_retention_days must be a valid CloudWatch logs retention period."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.agent_runtimes :
+      v.kms_key_id == null || can(regex("^(arn:aws:kms:|alias/)", v.kms_key_id))
+    ])
+    error_message = "kms_key_id must be a valid KMS key ARN or alias."
+  }
 }
 
 # Additional Tags (PC-IAC-004)
@@ -185,7 +208,7 @@ variable "additional_tags" {
   }
 
   validation {
-    condition = !contains(keys(var.additional_tags), "Name")
+    condition     = !contains(keys(var.additional_tags), "Name")
     error_message = "Name tag is automatically managed and cannot be overridden."
   }
 }
@@ -199,42 +222,5 @@ variable "enable_encryption" {
   validation {
     condition     = var.enable_encryption == true
     error_message = "Encryption must be enabled for security compliance."
-  }
-}
-
-variable "kms_key_id" {
-  description = "KMS key ID or ARN for encryption (optional, uses AWS managed key if not provided)"
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.kms_key_id == null || can(regex("^(arn:aws:kms:|alias/)", var.kms_key_id))
-    error_message = "kms_key_id must be a valid KMS key ARN or alias."
-  }
-}
-
-# Logging Configuration
-variable "enable_logging" {
-  description = "Enable CloudWatch logging for agent runtimes"
-  type        = bool
-  default     = true
-
-  validation {
-    condition     = var.enable_logging == true || var.enable_logging == false
-    error_message = "enable_logging must be a boolean value."
-  }
-}
-
-variable "log_retention_days" {
-  description = "CloudWatch log retention period in days"
-  type        = number
-  default     = 30
-
-  validation {
-    condition = contains([
-      1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731,
-      1096, 1827, 2192, 2557, 2922, 3288, 3653, 0
-    ], var.log_retention_days)
-    error_message = "Log retention must be a valid CloudWatch logs retention period."
   }
 }

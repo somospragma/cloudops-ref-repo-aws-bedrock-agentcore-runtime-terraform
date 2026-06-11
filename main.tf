@@ -103,6 +103,46 @@ resource "aws_bedrockagentcore_agent_runtime" "this" {
   provider = aws.project
 }
 
+# CloudWatch Log Group for Agent Runtime DEFAULT endpoint
+# AgentCore crea automáticamente un endpoint DEFAULT al crear el runtime,
+# con su propio log group en la ruta {agent_runtime_id}-DEFAULT.
+resource "aws_cloudwatch_log_group" "agent_runtime_default_endpoint" {
+  for_each = var.agent_runtimes
+
+  name              = "${local.log_group_prefix}/${aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id}-DEFAULT"
+  retention_in_days = each.value.log_retention_days
+  kms_key_id        = each.value.kms_key_id
+
+  # PC-IAC-004: Tag Name explícito + additional_tags.
+  tags = merge(
+    { Name = "${local.log_group_prefix}/${aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id}-DEFAULT" },
+    var.additional_tags
+  )
+
+  provider = aws.project
+}
+
+# CloudWatch Log Group for Agent Runtime custom endpoint
+# El nombre del log group sigue el patrón {agent_runtime_id}-{endpoint_name}.
+resource "aws_cloudwatch_log_group" "agent_runtime_endpoint" {
+  for_each = {
+    for key, config in var.agent_runtimes : key => config
+    if config.create_endpoint
+  }
+
+  name              = "${local.log_group_prefix}/${aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id}-${local.endpoint_names[each.key]}"
+  retention_in_days = each.value.log_retention_days
+  kms_key_id        = each.value.kms_key_id
+
+  # PC-IAC-004: Tag Name explícito + additional_tags.
+  tags = merge(
+    { Name = "${local.log_group_prefix}/${aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id}-${local.endpoint_names[each.key]}" },
+    var.additional_tags
+  )
+
+  provider = aws.project
+}
+
 # Agent Runtime Endpoints
 resource "aws_bedrockagentcore_agent_runtime_endpoint" "this" {
   for_each = {
@@ -110,7 +150,7 @@ resource "aws_bedrockagentcore_agent_runtime_endpoint" "this" {
     if config.create_endpoint
   }
 
-  name                  = replace("${local.name_prefix}-endpoint-${each.key}", "-", "_")
+  name                  = local.endpoint_names[each.key]
   agent_runtime_id      = aws_bedrockagentcore_agent_runtime.this[each.key].agent_runtime_id
   agent_runtime_version = each.value.endpoint_version
   description           = "Endpoint for ${each.key} agent runtime"
@@ -120,6 +160,12 @@ resource "aws_bedrockagentcore_agent_runtime_endpoint" "this" {
     { Name = "${local.name_prefix}-endpoint-${each.key}" },
     var.additional_tags
   )
+
+  # Asegurar que los log groups existan antes de que el endpoint lo necesite
+  depends_on = [
+    aws_cloudwatch_log_group.agent_runtime_default_endpoint,
+    aws_cloudwatch_log_group.agent_runtime_endpoint
+  ]
 
   provider = aws.project
 }

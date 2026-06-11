@@ -51,3 +51,31 @@ output "agent_runtime_configurations" {
     }
   }
 }
+
+output "log_group_names" {
+  description = "Map of agent runtime names to their custom endpoint CloudWatch Log Group names."
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime_endpoint : key => lg.name
+  }
+}
+
+output "log_group_arns" {
+  description = "Map of agent runtime names to their custom endpoint CloudWatch Log Group ARNs."
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime_endpoint : key => lg.arn
+  }
+}
+
+output "log_group_default_endpoint_names" {
+  description = "Map of agent runtime names to their DEFAULT endpoint CloudWatch Log Group names."
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime_default_endpoint : key => lg.name
+  }
+}
+
+output "log_group_default_endpoint_arns" {
+  description = "Map of agent runtime names to their DEFAULT endpoint CloudWatch Log Group ARNs."
+  value = {
+    for key, lg in aws_cloudwatch_log_group.agent_runtime_default_endpoint : key => lg.arn
+  }
+}

@@ -80,8 +80,12 @@ variable "agent_runtimes" {
       max_lifetime = optional(number, 28800)
     }))
 
-    allowed_headers  = optional(list(string))
-    additional_tags  = optional(map(string), {})
+    allowed_headers = optional(list(string))
+    additional_tags = optional(map(string), {})
+
+    # Logging Configuration
+    kms_key_id         = optional(string)
+    log_retention_days = optional(number, 30)
   }))
 
   validation {
@@ -93,38 +97,13 @@ variable "agent_runtimes" {
   }
 }
 
-variable "enable_logging" {
-  description = "Enable CloudWatch logging"
-  type        = bool
-  default     = true
-
-  validation {
-    condition     = var.enable_logging == true || var.enable_logging == false
-    error_message = "enable_logging must be a boolean value."
-  }
-}
-
-variable "log_retention_days" {
-  description = "CloudWatch log retention period in days"
-  type        = number
-  default     = 30
-
-  validation {
-    condition = contains([
-      1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731,
-      1096, 1827, 2192, 2557, 2922, 3288, 3653, 0
-    ], var.log_retention_days)
-    error_message = "Log retention must be a valid CloudWatch logs retention period."
-  }
-}
-
 variable "additional_tags" {
   description = "Additional tags to apply to resources"
   type        = map(string)
   default     = {}
 
   validation {
-    condition = !contains(keys(var.additional_tags), "Name")
+    condition     = !contains(keys(var.additional_tags), "Name")
     error_message = "Name tag is automatically managed."
   }
 }
