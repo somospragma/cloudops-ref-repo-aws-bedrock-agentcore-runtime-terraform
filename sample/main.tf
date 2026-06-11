@@ -22,7 +22,5 @@ module "bedrock_agentcore" {
   # E. Variables de Configuración - consumir local transformado (PC-IAC-026)
   agent_runtimes = local.agent_runtimes_transformed
 
-  enable_logging     = var.enable_logging
-  log_retention_days = var.log_retention_days
-  additional_tags    = var.additional_tags
+  additional_tags = var.additional_tags
 }
