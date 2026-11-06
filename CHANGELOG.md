@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Soporte para `platform_version` (`V1`|`V2`) en `agent_runtimes`, que controla cómo AgentCore arranca el agente. `V2` restaura cada instancia desde un snapshot preparado (cold starts consistentes, facturación por uso). Cuando se omite, aplica el default del API: `V1` al crear y el valor actual se conserva al actualizar.
+
 ### Changed
+- Elevado el pin mínimo del provider AWS a `>= 6.68.0` (versión que añade el argumento `platform_version` al recurso `aws_bedrockagentcore_agent_runtime`).
 - **BREAKING**: `role_arn` es ahora obligatorio en `agent_runtimes` (PC-IAC-023). Los roles IAM deben crearse en el dominio de Seguridad.
 - **BREAKING**: Eliminada creación automática de roles IAM (`aws_iam_role`, `aws_iam_role_policy`) del módulo.
 - **BREAKING**: Eliminados outputs `iam_role_arns` e `iam_role_names`.

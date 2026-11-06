@@ -57,6 +57,7 @@ variable "agent_runtimes" {
     role_arn         = string
     network_mode     = optional(string, "PUBLIC")
     protocol         = optional(string, "MCP")
+    platform_version = optional(string)
     create_endpoint  = optional(bool, true)
     endpoint_version = optional(string)
 
@@ -135,6 +136,14 @@ variable "agent_runtimes" {
       v.protocol == null || contains(["HTTP", "MCP", "A2A"], v.protocol)
     ])
     error_message = "Protocol must be one of: HTTP, MCP, A2A."
+  }
+
+  validation {
+    condition = alltrue([
+      for k, v in var.agent_runtimes :
+      v.platform_version == null || contains(["V1", "V2"], v.platform_version)
+    ])
+    error_message = "platform_version must be either V1 or V2. Omit it to keep the AWS default (V1 on create; existing value retained on update)."
   }
 
   validation {

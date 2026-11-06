@@ -51,6 +51,7 @@ variable "agent_runtimes" {
     role_arn         = optional(string, "")
     network_mode     = optional(string, "PUBLIC")
     protocol         = optional(string, "MCP")
+    platform_version = optional(string)
     create_endpoint  = optional(bool, true)
     endpoint_version = optional(string)
 
