@@ -141,7 +141,7 @@ variable "agent_runtimes" {
   validation {
     condition = alltrue([
       for k, v in var.agent_runtimes :
-      v.platform_version == null || contains(["V1", "V2"], v.platform_version)
+      contains(["V1", "V2"], coalesce(v.platform_version, "V1"))
     ])
     error_message = "platform_version must be either V1 or V2. Omit it to keep the AWS default (V1 on create; existing value retained on update)."
   }
