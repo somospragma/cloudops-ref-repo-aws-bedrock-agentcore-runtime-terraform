@@ -7,8 +7,10 @@ terraform {
 
   required_providers {
     aws = {
-      source                = "hashicorp/aws"
-      version               = ">= 6.24.0, < 7.0.0"
+      source = "hashicorp/aws"
+      # >= 6.68.0: añade el argumento platform_version (V1|V2) al recurso
+      # aws_bedrockagentcore_agent_runtime.
+      version               = ">= 6.68.0, < 7.0.0"
       configuration_aliases = [aws.project]
     }
   }

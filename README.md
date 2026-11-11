@@ -69,6 +69,29 @@ module "bedrock_agentcore" {
 | `enable_logging` | `bool` | No | `true` | Habilitar logging en CloudWatch |
 | `log_retention_days` | `number` | No | `30` | Retención de logs en días |
 
+### Atributos destacados de `agent_runtimes`
+
+| Atributo | Tipo | Requerido | Default | Descripción |
+|----------|------|-----------|---------|-------------|
+| `role_arn` | `string` | Sí | - | ARN del rol IAM (inyectado desde Seguridad, PC-IAC-023) |
+| `platform_version` | `string` | No | `null` (API: `V1`) | Versión de plataforma: `V1` o `V2`. Controla cómo AgentCore arranca el agente |
+
+#### `platform_version` (V1 | V2)
+
+Controla cómo AgentCore Runtime arranca el agente:
+
+- Cuando se **omite** (`null`): aplica el default del API — `V1` al crear un runtime nuevo, y el valor actual se conserva al actualizar (sin diff).
+- **`V2`**: restaura cada instancia desde un snapshot preparado, lo que mantiene cold starts consistentes sin importar el tamaño de la imagen y habilita facturación por uso.
+
+Consideraciones al usar `V2`:
+
+- Las operaciones de create/update tardan **minutos** en vez de segundos (los timeouts del recurso ya son de 30m).
+- `environment_variables` tiene un **límite de tamaño total menor** que en `V1`.
+- Disponibilidad **limitada a un subconjunto de regiones**.
+- El argumento es **actualizable in-place** (el API soporta mover un runtime entre `V1` y `V2`).
+
+Ver [Platform versions](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-how-it-works.html#runtime-platform-versions) en la documentación de AWS.
+
 ### Estructura de `agent_runtimes`
 
 ```hcl
@@ -79,6 +102,7 @@ agent_runtimes = {
     role_arn         = string           # ARN del rol IAM (OBLIGATORIO, PC-IAC-023)
     network_mode     = string           # "PUBLIC" o "VPC" (default: "PUBLIC")
     protocol         = string           # "MCP", "HTTP" o "A2A" (default: "MCP")
+    platform_version = string           # "V1" o "V2" (opcional; default API: V1)
     create_endpoint  = bool             # Crear endpoint (default: true)
     code_configuration = object({...})  # Alternativa a container_uri
     vpc_config       = object({...})    # Requerido si network_mode = "VPC"
@@ -107,7 +131,7 @@ agent_runtimes = {
 | Requisito | Versión |
 |-----------|---------|
 | Terraform | >= 1.5.0 |
-| AWS Provider | >= 6.24.0, < 7.0.0 |
+| AWS Provider | >= 6.68.0, < 7.0.0 |
 
 ## Cumplimiento PC-IAC
 

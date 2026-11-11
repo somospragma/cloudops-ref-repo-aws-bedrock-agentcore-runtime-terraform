@@ -16,6 +16,11 @@ resource "aws_bedrockagentcore_agent_runtime" "this" {
   description        = each.value.description
   role_arn           = each.value.role_arn
 
+  # Platform version (V1|V2). Cuando es null, aplica el default del API (V1 en
+  # create; el valor actual se conserva en update). V2 arranca cada instancia
+  # restaurando un snapshot preparado.
+  platform_version = each.value.platform_version
+
   # Agent Runtime Artifact Configuration
   agent_runtime_artifact {
     dynamic "container_configuration" {
